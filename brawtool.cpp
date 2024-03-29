@@ -87,6 +87,7 @@ struct BrawTool
     boost::optional<int> height;
     std::string inputfilename;
     std::string outputdirectory;
+    std::string outputformat = "png";
     std::string override3dlut;
     int code = EXIT_SUCCESS;
 };
@@ -154,6 +155,14 @@ set_outputdirectory(int argc, const char* argv[])
 {
     OIIO_DASSERT(argc == 2);
     tool.outputdirectory = argv[1];
+    return 0;
+}
+
+static int
+set_outputformat(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 2);
+    tool.outputformat = argv[1];
     return 0;
 }
 
@@ -659,6 +668,10 @@ main( int argc, const char * argv[])
       .help("Output directory of braw files")
       .action(set_outputdirectory);
     
+    ap.arg("--outputformat %s:OUTFORMAT")
+      .help("Output format for preview image (png)")
+      .action(set_outputformat);
+    
     ap.arg("--clonebraw", &tool.clonebraw)
       .help("Clone braw file to output directory");
     
@@ -960,13 +973,12 @@ main( int argc, const char * argv[])
                 outputFile.close();
                 
             } else {
-                print_error("could not open output false color cube (lut) file: ", lutfile);
+                print_error("could not open output lut file: ", lutfile);
                 return EXIT_FAILURE;
             }
         }
     } else {
         print_warning("could not find sidecar file: ", sidecarfile);
-        return EXIT_FAILURE;
     }
     
     // apply 3dlut
@@ -1167,7 +1179,7 @@ main( int argc, const char * argv[])
 
     std::string outputfilename = combine_path(
         tool.outputdirectory,
-        filename(extension(tool.inputfilename, ".png"))
+        filename(extension(tool.inputfilename, "." + tool.outputformat))
     );
 
     print_info("writing output file: ", outputfilename);
