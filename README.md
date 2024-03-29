@@ -1,4 +1,4 @@
-Readme for logctool
+Readme for Brawtool
 ==================
 
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/logctool/blob/master/README.md)
