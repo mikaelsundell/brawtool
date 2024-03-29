@@ -81,8 +81,8 @@ struct BrawTool
     bool apply3dlut = false;
     bool applymetadata = false;
     boost::optional<float> exposure;
-    boost::optional<float> kelvin;
-    boost::optional<float> tint;
+    boost::optional<int> kelvin;
+    boost::optional<int> tint;
     boost::optional<int> width;
     boost::optional<int> height;
     std::string inputfilename;
@@ -105,7 +105,7 @@ static int
 set_kelvin(int argc, const char* argv[])
 {
     OIIO_DASSERT(argc == 2);
-    tool.kelvin = Strutil::stof(argv[1]);
+    tool.kelvin = Strutil::stoi(argv[1]);
     return 0;
 }
 
@@ -113,7 +113,7 @@ static int
 set_tint(int argc, const char* argv[])
 {
     OIIO_DASSERT(argc == 2);
-    tool.tint = Strutil::stof(argv[1]);
+    tool.tint = Strutil::stoi(argv[1]);
     return 0;
 }
 
@@ -149,8 +149,6 @@ set_override3dlut(int argc, const char* argv[])
     return 0;
 }
 
-
-
 static int
 set_outputdirectory(int argc, const char* argv[])
 {
@@ -174,6 +172,13 @@ std::string datetime()
     char datetime[20];
     strftime(datetime, 20, "%Y-%m-%d %H:%M:%S", &tm);
     return std::string(datetime);
+}
+
+std::string str_by_float(float value)
+{
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(1) << value;
+    return stream.str();
 }
 
 std::string str_by_int(int value)
@@ -202,6 +207,11 @@ std::string filename(const std::string& path)
 std::string extension(const std::string& path, const std::string& extension)
 {
     return Filesystem::replace_extension(path, extension);
+}
+
+bool exists(const std::string& path)
+{
+    return Filesystem::exists(path);
 }
 
 std::string hash_file(const std::string& path)
@@ -243,9 +253,10 @@ bool file_compare(const std::string& source, const std::string& target)
     return hash_file(source) == hash_file(target);
 }
 
-bool file_exists(const std::string& path)
+bool create_path(const std::string& path)
 {
-    return Filesystem::exists(path);
+    std::string error;
+    return Filesystem::create_directory(path, error);
 }
 
 std::string filename_path(const std::string& path)
@@ -272,6 +283,53 @@ std::string combine_path(const std::string& path, const std::string& filename)
 {
     return path + "/" + filename;
 }
+// braw metadata
+
+// utils - metadata
+struct BrawMetadata
+{
+    std::string key;
+    std::string name;
+    TypeDesc type;
+    int x;
+    int y;
+};
+
+ROI draw_metadata(ImageBuf& imageBuf, BrawMetadata metadata)
+{
+    int width = imageBuf.spec().width;
+    int height = imageBuf.spec().height;
+    std::string font = "Roboto.ttf";
+    float fontsize = imageBuf.spec().height * 0.02;
+    float margin = fontsize * 0.2f; // 20% of fontsize for decenders
+    float padding = fontsize * 0.2f; // 20% of fontsize for decenders
+    float fontcolor[] = { 1, 1, 1, 1 };
+    ROI size = ImageBufAlgo::text_size(metadata.name, fontsize, font_path(font));
+    ROI roi(
+        metadata.x - padding,
+        metadata.x + size.width() + padding,
+        metadata.y - size.height() - padding,
+        metadata.y + margin + padding
+    );
+    ImageBufAlgo::fill(
+        imageBuf,
+        { 0, 0, 0, 0.5f },
+        roi
+    );
+    ImageBufAlgo::render_text(
+        imageBuf,
+        metadata.x,
+        metadata.y,
+        metadata.name,
+        fontsize,
+        font_path(font),
+        fontcolor,
+        ImageBufAlgo::TextAlignX::Left,
+        ImageBufAlgo::TextAlignY::Baseline
+    );
+    return roi;
+}
+
 
 // braw callback
 class BrawCallback : public IBlackmagicRawCallback
@@ -296,14 +354,14 @@ class BrawCallback : public IBlackmagicRawCallback
                 frame->CloneFrameProcessingAttributes(&frameProcessingAttributes);
                 if (m_kelvin.has_value()) {
                     Variant variant;
-                    variant.vt = blackmagicRawVariantTypeFloat32;
-                    variant.fltVal = m_kelvin.value();
+                    variant.vt = blackmagicRawVariantTypeU32;
+                    variant.uintVal = m_kelvin.value();
                     frameProcessingAttributes->SetFrameAttribute(blackmagicRawFrameProcessingAttributeWhiteBalanceKelvin, &variant);
                 }
                 if (m_tint.has_value()) {
                     Variant variant;
-                    variant.vt = blackmagicRawVariantTypeFloat32;
-                    variant.fltVal = m_tint.value();
+                    variant.vt = blackmagicRawVariantTypeS16;
+                    variant.uintVal = m_tint.value();
                     frameProcessingAttributes->SetFrameAttribute(blackmagicRawFrameProcessingAttributeWhiteBalanceTint, &variant);
                 }
                 if (m_exposure.has_value()) {
@@ -380,7 +438,6 @@ class BrawCallback : public IBlackmagicRawCallback
                     str = buffer;
                     attribute.clear();
                     attribute += str;
-                    attribute += ": ";
                 }
                 VariantInit(&value);
                 result = metadataIterator->GetData(&value);
@@ -540,8 +597,8 @@ class BrawCallback : public IBlackmagicRawCallback
             }
         }
     private:
-        boost::optional<float> m_kelvin;
-        boost::optional<float> m_tint;
+        boost::optional<int> m_kelvin;
+        boost::optional<int> m_tint;
         boost::optional<float> m_exposure;
         IBlackmagicRawFrame* m_frame = nullptr;
         ImageBuf m_imageBuf;
@@ -555,6 +612,8 @@ struct BrawColorspace
     std::string description;
     std::string filename;
 };
+
+
 
 // main
 int 
@@ -890,7 +949,7 @@ main( int argc, const char * argv[])
             filename_path(tool.inputfilename) + "/3DLut", name
         );
         
-        if (!file_exists(lutfile)) {
+        if (!exists(lutfile)) {
             std::ofstream outputFile(lutfile);
             if (outputFile)
             {
@@ -938,7 +997,7 @@ main( int argc, const char * argv[])
                 }
                 PackedImageDesc imgDesc(&pixels[0], roi.width(), roi.height(), roi.nchannels());
 
-                // Apply the color transformation
+                // apply color transformation
                 colorspaceProcessor->apply(imgDesc);
                 imageBuf.set_pixels(roi, TypeDesc::FLOAT, &pixels[0]);
             }
@@ -950,33 +1009,89 @@ main( int argc, const char * argv[])
     {
         print_info("applying metadata from attributes");
         {
+            std::vector<BrawMetadata> metadatas =
+            {
+                BrawMetadata() = { "filename", "filename", TypeDesc::STRING, 0, 0 },
+                BrawMetadata() = { "exposure", "exposure", TypeDesc::STRING, 0, 0 },
+                BrawMetadata() = { "sensor_rate", "fps", TypeDesc::STRING, 0, 0 },
+                BrawMetadata() = { "shutter_value", "shutter", TypeDesc::STRING, 0, 0 },
+                BrawMetadata() = { "aperture", "iris", TypeDesc::STRING, 0, 0 },
+                BrawMetadata() = { "iso", "iso", TypeDesc::INT, 0, 0 },
+                BrawMetadata() = { "white_balance_kelvin", "wb", TypeDesc::INT, 0, 0 },
+                BrawMetadata() = { "white_balance_tint", "tint", TypeDesc::INT, 0, 0 },
+                BrawMetadata() = { "lens_type", "lens", TypeDesc::STRING, 0, 0 },
+                BrawMetadata() = { "focal_length", "focal length", TypeDesc::STRING, 0, 0 },
+                BrawMetadata() = { "distance", "focus", TypeDesc::STRING, 0, 0 },
+                BrawMetadata() = { "date_recorded", "date", TypeDesc::STRING, 0, 0 },
+            };
             int width = imageBuf.spec().width;
             int height = imageBuf.spec().height;
-            
-            std::string font = "Roboto.ttf";
-            float fontsize = imageBuf.spec().height * 0.01;
-            float fontcolor[] = { 1, 1, 1, 1 };
-            
-            // filename
+            int x = width * 0.02;
+            int y = height * 0.04f;
+            for(BrawMetadata metadata : metadatas)
             {
-                ROI boxROI = ImageBufAlgo::text_size("Metadata", fontsize, font_path(font));
-                
-                
-                boxROI.x
-                
-                float black[] = {0, 0, 0, 1};
-                ImageBufAlgo::fill(imageBuf, black, boxROI);
-                
-                ImageBufAlgo::render_text(imageBuf,
-                    0,
-                    0,
-                    "Metadata",
-                    fontsize,
-                    font_path(font),
-                    fontcolor,
-                    ImageBufAlgo::TextAlignX::Left,
-                    ImageBufAlgo::TextAlignY::Center
-                );
+                const ImageSpec &spec = imageBuf.spec();
+                int width = imageBuf.spec().width;
+                int height = imageBuf.spec().height;
+                if (metadata.key == "filename") {
+                    metadata.name = filename(tool.inputfilename);
+                } else {
+                    const ParamValue* attr = spec.find_attribute(metadata.key);
+                    if (attr) {
+                        std::string value;
+                        const TypeDesc type = attr->type();
+                        switch (type.basetype) {
+                            case TypeDesc::STRING:
+                                value = *(const char**)attr->data();
+                                break;
+                            case TypeDesc::FLOAT:
+                                value = str_by_float(*(const float*)attr->data());
+                                break;
+                            case TypeDesc::INT8:
+                                value = std::to_string(*(const char*)attr->data());
+                                break;
+                            case TypeDesc::UINT8:
+                                value = std::to_string(*(const unsigned char*)attr->data());
+                                break;
+                            case TypeDesc::INT16:
+                                value = std::to_string(*(const short*)attr->data());
+                                break;
+                            case TypeDesc::UINT16:
+                                value = std::to_string(*(const unsigned short*)attr->data());
+                                break;
+                            case TypeDesc::INT:
+                                value = std::to_string(*(const int*)attr->data());
+                                break;
+                            case TypeDesc::UINT:
+                                value = std::to_string(*(const unsigned int*)attr->data());
+                                break;
+                        }
+                        if (metadata.key == "exposure") {
+                            if (tool.exposure.has_value()) {
+                                metadata.name = metadata.name + ": " + str_by_float(tool.exposure.value()) + " (" + value + ")";
+                            } else {
+                                metadata.name = metadata.name + ": " + value;
+                            }
+                        } else if (metadata.key == "white_balance_kelvin") {
+                            if (tool.kelvin.has_value()) {
+                                metadata.name = metadata.name + ": " + std::to_string(tool.kelvin.value()) + " (" + value + ")";
+                            } else {
+                                metadata.name = metadata.name + ": " + value;
+                            }
+                        } else if (metadata.key == "white_balance_tint") {
+                            if (tool.tint.has_value()) {
+                                metadata.name = metadata.name + ": " + std::to_string(tool.tint.value()) + " (" + value + ")";
+                            } else {
+                                metadata.name = metadata.name + ": " + value;
+                            }
+                        } else {
+                            metadata.name = metadata.name + ": " + value;
+                        }
+                    }
+                }
+                metadata.x = x;
+                metadata.y = y;
+                y += draw_metadata(imageBuf, metadata).height() + height * 0.01f;
             }
         }
     }
@@ -998,7 +1113,56 @@ main( int argc, const char * argv[])
     // clone proxy
     if (tool.cloneproxy)
     {
+        std::string proxydirname = combine_path(
+            tool.outputdirectory,
+            "Proxy"
+        );
+        if (!exists(proxydirname)) {
+            if (!create_path(proxydirname)) {
+                print_error("could not create proxy directory: ", proxydirname);
+                return EXIT_FAILURE;
+            }
+        }
         
+        // mp4
+        std::string mp4file = combine_path(
+            filename_path(tool.inputfilename) + "/Proxy",
+            filename(extension(tool.inputfilename, "mp4"))
+        );
+        if (exists(mp4file)) {
+            std::string mp4outputfile = combine_path(
+                proxydirname,
+                filename(mp4file)
+            );
+            copy_file(mp4file, mp4outputfile);
+            if (!file_compare(mp4file, mp4outputfile)) {
+                print_error("failed when trying to clone mp4 file to: ", mp4outputfile);
+                return EXIT_FAILURE;
+            }
+            
+        } else {
+            print_warning("could not find proxy mp4 file: ", mp4file);
+        }
+
+        // sidecar
+        std::string sidecarfile = combine_path(
+            filename_path(tool.inputfilename) + "/Proxy",
+            filename(extension(tool.inputfilename, "sidecar"))
+        );
+        if (exists(sidecarfile)) {
+            std::string sidecaroutputfile = combine_path(
+                proxydirname,
+                filename(sidecarfile)
+            );
+            copy_file(sidecarfile, sidecaroutputfile);
+            if (!file_compare(sidecarfile, sidecaroutputfile)) {
+                print_error("failed when trying to clone sidecar file to: ", sidecaroutputfile);
+                return EXIT_FAILURE;
+            }
+            
+        } else {
+            print_warning("could not find proxy mp4 file: ", mp4file);
+        }
     }
 
     std::string outputfilename = combine_path(
@@ -1010,6 +1174,8 @@ main( int argc, const char * argv[])
 
     if (!imageBuf.write(outputfilename)) {
         print_error("could not write file: ", imageBuf.geterror());
+        return EXIT_FAILURE;
     }
-    return 0;
+    
+    return EXIT_SUCCESS;
 }
