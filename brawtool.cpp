@@ -708,7 +708,7 @@ main( int argc, const char * argv[])
     print_info("reading braw colorspaces");
     std::map<std::string, BrawColorspace> colorspaces;
     {
-        std::string jsonfile = resources_path("colorspaces.json");
+        std::string jsonfile = resources_path("brawtool.json");
         std::ifstream json(jsonfile);
         if (json.is_open()) {
             ptree pt;
