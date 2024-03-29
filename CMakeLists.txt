@@ -55,6 +55,10 @@ add_custom_command(
         $<TARGET_FILE_DIR:${project_name}>/resources
 )
 
+install(TARGETS ${project_name}
+    RUNTIME DESTINATION bin
+)
+
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/fonts
     DESTINATION bin
 )
