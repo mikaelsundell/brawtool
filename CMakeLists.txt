@@ -17,6 +17,9 @@ find_package( OpenColorIO CONFIG REQUIRED )
 find_package( Boost CONFIG REQUIRED COMPONENTS filesystem )
 find_package( BlackmagicRaw REQUIRED )
 
+# rpaths
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # project
 add_executable( ${project_name} "brawtool.cpp" ${BlackmagicRaw_SOURCES} )
 
