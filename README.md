@@ -1,19 +1,17 @@
 Readme for Brawtool
 ==================
 
-[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/logctool/blob/master/README.md)
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/brawtool/blob/master/README.md)
 
 Introduction
 ------------
 
-brawtool a set of utilities for processing logc encoded images
-
-![Sample image or figure.](images/image.png 'brawtool')
+brawtool is a set of utilities for processing braw encoded images
 
 Building
 --------
 
-The logctool app can be built both from commandline or using optional Xcode `-GXcode`.
+The brawtool app can be built both from commandline or using optional Xcode `-GXcode`.
 
 ```shell
 mkdir build
@@ -37,53 +35,27 @@ Usage
 Print brawtool help message with flag ```--help```.
 
 ```shell
-logctool -- a set of utilities for processing logc encoded images
+brawtool -- a set of utilities for processing braw encoded images
 
 Usage: brawtool [options] filename...
 
-Commands that read images:
-    -i FILENAME                         Input chart file
 General flags:
-    --help                              Print help message
-    -v                                  Verbose status messages
-    -d                                  Debug status messages
-General flags:
-    --ei EI                             LogC exposure index
-    --dataformat DATAFORMAT             LogC format (float, uint10, uint16 and unit32) (default: float)
-    --convertlut LUT                    LogC conversion lut
+    --help                         Print help message
+    -v                             Verbose status messages
+    --inputfilename OUTFILENAME    Input filename of braw file
+    --kelvin KELVIN                Input white balance kelvin adjustment
+    --tint TINT                    Input white balance tint adjustment
+    --exposure EXPOSURE            Input linear exposure adjustment
 Output flags:
-    --outputfilename FILE               Output filename of log steps
-    --outputwidth WIDTH                 Output width of log steps
-    --outputheight HEIGHT               Output height of log steps
-    --outputfalsecolorcubefile FILE     Optional output false color cube (lut) file
-    --outputstopscubefile FILE          Optional output stops cube (lut) file
-```
-
-
-Generate LogC steps in OpenEXR float
---------
-
-```shell
-./logcotol
--v
---outputwidth 2048
---outputheight 1024
---dataformat float
---outpitfilename /Volumes/Build/github/test/logctool_LogC3.exr
---outputstopscubefile /Volumes/Build/github/test/logctool_LogC3_out.cube
-```
-
-Generate Conversion LUTs in Davinci Resolve
---------
-
-```shell
-./logcotol
--v
---outputwidth 2048
---outputheight 1024
---dataformat float
---outpitfilename /Volumes/Build/github/test/logctool_LogC3.exr
---outputstopscubefile /Volumes/Build/github/test/logctool_LogC3_out.cube
+    --outputdirectory OUTFILENAME  Output directory of braw files
+    --outputformat OUTFORMAT       Output format for preview image (png)
+    --clonebraw                    Clone braw file to output directory
+    --cloneproxy                   Clone proxy directory to output directory
+    --apply3dlut                   Apply 3dlut to preview image
+    --applymetadata                Apply metadata to preview image
+    --override3dlut OVERRIDE3DLUT  Override 3dlut for preview image
+    --width WIDTH                  Output width of preview image
+    --height HEIGHT                Output height of preview image
 ```
 
 Packaging
@@ -92,7 +64,7 @@ Packaging
 The `macdeploy.sh` script will deploy mac bundle to dmg including dependencies.
 
 ```shell
-./macdeploy.sh -e <path>/logctool -d <path> -p <path>
+./macdeploy.sh -e <path>/brawtool -d <path> -p <path>
 ```
 
 Dependencies
@@ -100,37 +72,23 @@ Dependencies
 
 | Project     | Description |
 | ----------- | ----------- |
+| Boost       | [Boost project @ Github](https://github.com/boostorg/boost)
 | OpenImageIO | [OpenImageIO project @ Github](https://github.com/OpenImageIO/oiio)
 | OpenColorIO | [OpenColorIO project @ Github](https://github.com/AcademySoftwareFoundation/OpenColorIO)
-| OpenEXR     | [OpenEXR project @ Github](https://github.com/AcademySoftwareFoundation/openexr)
+| BlackMagic RAW     | [BlackMagic website](https://www.blackmagicdesign.com/se/products/blackmagicraw)
 | 3rdparty    | [3rdparty project containing all dependencies @ Github](https://github.com/mikaelsundell/3rdparty)
-
-Limitations
--------------
-
-Cube LUTs are limited in their precision therefore does not handle the toe of the curve very well.
 
 Project
 -------
 
 * GitHub page   
-https://github.com/mikaelsundell/logctool
+https://github.com/mikaelsundell/brawtool
 * Issues   
-https://github.com/mikaelsundell/logctool/issues
-
-
-Resources
----------
-
-* ALEXA Log C Curve    
-https://github.com/mikaelsundell/utilities/blob/master/whitepapers/arri/11-06-30_Alexa_LogC_Curve.pdf
-
+https://github.com/mikaelsundell/brawtool/issues
 
 Copyright
 ---------
 
-* Arri references   
-Copyright © 2023 ARRI AG. All rights reserved.
 
 * Roboto font   
 https://fonts.google.com/specimen/Roboto   
