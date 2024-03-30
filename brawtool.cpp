@@ -339,7 +339,6 @@ ROI draw_metadata(ImageBuf& imageBuf, BrawMetadata metadata)
     return roi;
 }
 
-
 // braw callback
 class BrawCallback : public IBlackmagicRawCallback
 {
@@ -352,7 +351,8 @@ class BrawCallback : public IBlackmagicRawCallback
             m_imageBuf.clear();
         }
     
-        virtual void ReadComplete(IBlackmagicRawJob* job, HRESULT result, IBlackmagicRawFrame* frame) {
+        virtual void ReadComplete(IBlackmagicRawJob* job, HRESULT result, IBlackmagicRawFrame* frame)
+        {
             IBlackmagicRawJob* decodeAndProcessJob = nullptr;
             BlackmagicRawResourceFormat format = blackmagicRawResourceFormatRGBF32; // we always read float 32
             if (result == S_OK) {
@@ -550,7 +550,7 @@ class BrawCallback : public IBlackmagicRawCallback
             return E_NOTIMPL;
         }
         virtual ULONG STDMETHODCALLTYPE AddRef(void)
-        {
+        { 
             return ++m_refCount;
         }
 
@@ -760,7 +760,7 @@ main( int argc, const char * argv[])
     // read braw data
     print_info("reading braw data from file: ", tool.inputfilename);
     ImageBuf imageBuf;
-    {
+    { 
         HRESULT result = S_OK;
         IBlackmagicRawFactory* factory = nullptr;
         factory = CreateBlackmagicRawFactoryInstanceFromPath(CFSTR(BlackmagicRaw_LIBRARY_PATH));
@@ -775,7 +775,7 @@ main( int argc, const char * argv[])
             print_error("could not create codec from blackmagic api");
             return EXIT_FAILURE;
         }
-        
+ 
         IBlackmagicRawClip* clip = nullptr;
         CFStringRef clipfilename = cfstr_by_str(tool.inputfilename);
         result = codec->OpenClip(clipfilename, &clip);
@@ -783,7 +783,7 @@ main( int argc, const char * argv[])
             print_error("could not open input filename: ", tool.inputfilename);
             return EXIT_FAILURE;
         }
-        
+
         BrawCallback* callback = new BrawCallback();
         callback->AddRef();
         if (tool.kelvin.has_value()) {
@@ -795,20 +795,20 @@ main( int argc, const char * argv[])
         if (tool.exposure.has_value()) {
             callback->SetExposure(tool.exposure.value());
         }
-        
+
         result = codec->SetCallback(callback);
         if (result != S_OK) {
             print_error("could not set callback for input filename: ", tool.inputfilename);
             return EXIT_FAILURE;
         }
-        
+
         IBlackmagicRawMetadataIterator* clipMetadataIterator = nullptr;
         result = clip->GetMetadataIterator(&clipMetadataIterator);
         if (result != S_OK) {
             print_error("could not set get clip meta data for input filename: ", tool.inputfilename);
             return EXIT_FAILURE;
         }
-        
+
         IBlackmagicRawJob* job = nullptr;
         long time = 0;
         result = clip->CreateJobReadFrame(time, &job);
@@ -816,15 +816,16 @@ main( int argc, const char * argv[])
             print_error("could not read frame for input filename: ", tool.inputfilename);
             return EXIT_FAILURE;
         }
-        
+
         result = job->Submit();
-        job->Release();
         if (result != S_OK)
         {
+            job->Release();
             print_error("could not submit job for input filename: ", tool.inputfilename);
             return EXIT_FAILURE;
         }
         codec->FlushJobs();
+
         IBlackmagicRawFrame* frame = callback->GetFrame();
         if (frame == nullptr) {
             print_error("could not get frame for input filename: ", tool.inputfilename);
@@ -981,7 +982,7 @@ main( int argc, const char * argv[])
             }
 
             lutfile = combine_path(
-                tool.outputdirectory + "/3DLut", name
+                lutdirectory, name
             );
             
             if (!exists(lutfile)) {
@@ -999,40 +1000,40 @@ main( int argc, const char * argv[])
                     return EXIT_FAILURE;
                 }
             }
+
+            print_info("applying 3dlut from file from sidecar");
+            {
+                ConstConfigRcPtr config = Config::CreateRaw();
+                ConstCPUProcessorRcPtr colorspaceProcessor;
+                
+                FileTransformRcPtr transform = FileTransform::Create();
+                transform->setSrc(lutfile.c_str());
+                transform->setInterpolation(INTERP_BEST);
+                
+                ConstProcessorRcPtr processor = config->getProcessor(transform);
+                colorspaceProcessor = processor->getDefaultCPUProcessor();
+                {
+                    const ImageSpec &spec = imageBuf.spec();
+                    int xres = spec.width;
+                    int yres = spec.height;
+                    int channels = spec.nchannels;
+                    ROI roi = ROI(0, xres, 0, yres, 0, 1, 0, channels);
+                    std::vector<float> pixels(roi.width() * roi.height() * roi.nchannels());
+                    
+                    if (!imageBuf.get_pixels(roi, TypeDesc::FLOAT, &pixels[0])) {
+                        print_error("failed to get pixel data from the image buffer");
+                        return EXIT_FAILURE;
+                    }
+                    PackedImageDesc imgDesc(&pixels[0], roi.width(), roi.height(), roi.nchannels());
+
+                    // apply color transformation
+                    colorspaceProcessor->apply(imgDesc);
+                    imageBuf.set_pixels(roi, TypeDesc::FLOAT, &pixels[0]);
+                }
+            }
         } else {
             print_warning("could not find sidecar file: ", sidecarfile);
-        }
-        
-
-        print_info("applying 3dlut from file from sidecar");
-        {
-            ConstConfigRcPtr config = Config::CreateRaw();
-            ConstCPUProcessorRcPtr colorspaceProcessor;
-            
-            FileTransformRcPtr transform = FileTransform::Create();
-            transform->setSrc(lutfile.c_str());
-            transform->setInterpolation(INTERP_BEST);
-            
-            ConstProcessorRcPtr processor = config->getProcessor(transform);
-            colorspaceProcessor = processor->getDefaultCPUProcessor();
-            {
-                const ImageSpec &spec = imageBuf.spec();
-                int xres = spec.width;
-                int yres = spec.height;
-                int channels = spec.nchannels;
-                ROI roi = ROI(0, xres, 0, yres, 0, 1, 0, channels);
-                std::vector<float> pixels(roi.width() * roi.height() * roi.nchannels());
-                
-                if (!imageBuf.get_pixels(roi, TypeDesc::FLOAT, &pixels[0])) {
-                    print_error("failed to get pixel data from the image buffer");
-                    return EXIT_FAILURE;
-                }
-                PackedImageDesc imgDesc(&pixels[0], roi.width(), roi.height(), roi.nchannels());
-
-                // apply color transformation
-                colorspaceProcessor->apply(imgDesc);
-                imageBuf.set_pixels(roi, TypeDesc::FLOAT, &pixels[0]);
-            }
+            return EXIT_FAILURE;
         }
     }
     
@@ -1208,6 +1209,5 @@ main( int argc, const char * argv[])
         print_error("could not write file: ", imageBuf.geterror());
         return EXIT_FAILURE;
     }
-    
     return EXIT_SUCCESS;
 }
