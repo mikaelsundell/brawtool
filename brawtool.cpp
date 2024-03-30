@@ -902,88 +902,108 @@ main( int argc, const char * argv[])
         }
     }
 
-    // read sidecar
-    std::string sidecarfile = combine_path(
-        filename_path(tool.inputfilename) + "/Proxy",
-        filename(extension(tool.inputfilename, "sidecar"))
-    );
-    
-    print_info("reading braw sidecardata from file: ", sidecarfile);
-    std::ifstream sidecar(sidecarfile);
-    std::string lutfile;
-    if (sidecar.is_open()) {
-        std::string line;
-        std::string name, title, data;
-        int lutSize = 0;
-        boost::regex multispaces("\\s{2,}");
-        boost::regex leadingspaces("^\\s+");
-        bool datarun = false;
-        while (getline(sidecar, line)) {
-            if (datarun) {
-               if (line.find("\"") != std::string::npos) {
-                   std::string value = line.substr(0, line.rfind("\""));
-                   value = boost::regex_replace(value, multispaces, " ");
-                   value = boost::regex_replace(value, leadingspaces, "");
-                   data += value;
-                   break;
-               }
-               std::string value = boost::regex_replace(line, multispaces, " ");
-               value = boost::regex_replace(value, leadingspaces, "");
-               data += value + "\n";
-               continue;
-            }
-            if (line.find("\"post_3dlut_sidecar_name\":") != std::string::npos) {
-                boost::regex expr(R"("post_3dlut_sidecar_name"\s*:\s*"([^"]*)\")");
-                boost::smatch what;
-                if (boost::regex_search(line, what, expr)) {
-                    name = what[1];
-                }
-            } else if (line.find("\"post_3dlut_sidecar_title\":") != std::string::npos) {
-                boost::regex expr(R"("post_3dlut_sidecar_title"\s*:\s*"([^"]*)\")");
-                boost::smatch what;
-                if (boost::regex_search(line, what, expr)) {
-                    title = what[1];
-                }
-            } else if (line.find("\"post_3dlut_sidecar_data\":") != std::string::npos) {
-                datarun = true;
-                size_t startPos = line.find("\"", line.find(":")) + 1;
-                if (startPos != std::string::npos && startPos < line.size()) {
-                    std::string value = line.substr(startPos);
-                    if (!value.empty() && value.find("\"") != std::string::npos) {
-                        value = value.substr(0, value.find("\""));
-                    }
-                    value = boost::regex_replace(value, multispaces, " ");
-                    value = boost::regex_replace(value, leadingspaces, "");
-                    data += value + (value.empty() ? "" : "\n");
-                }
-            }
-        }
-        lutfile = combine_path(
-            filename_path(tool.inputfilename) + "/3DLut", name
-        );
-        
-        if (!exists(lutfile)) {
-            std::ofstream outputFile(lutfile);
-            if (outputFile)
-            {
-                outputFile << "BMD_TITLE " << title << std::endl;
-                outputFile << std::endl;
-                outputFile << "LUT_3D_SIZE " << std::to_string(lutSize) << std::endl;
-                outputFile << data;
-                outputFile.close();
-                
-            } else {
-                print_error("could not open output lut file: ", lutfile);
-                return EXIT_FAILURE;
-            }
-        }
-    } else {
-        print_warning("could not find sidecar file: ", sidecarfile);
-    }
-    
     // apply 3dlut
     if (tool.apply3dlut)
     {
+        std::string sidecarfile = combine_path(
+            filename_path(tool.inputfilename) + "/Proxy",
+            filename(extension(tool.inputfilename, "sidecar"))
+        );
+        
+        print_info("reading braw sidecardata from file: ", sidecarfile);
+        
+        std::ifstream sidecar(sidecarfile);
+        std::string lutfile;
+        std::string lutdirectory;
+        if (sidecar.is_open()) {
+            std::string line;
+            std::string name, title, data;
+            int lutSize = 0;
+            boost::regex multispaces("\\s{2,}");
+            boost::regex leadingspaces("^\\s+");
+            bool datarun = false;
+            while (getline(sidecar, line)) {
+                if (datarun) {
+                   if (line.find("\"") != std::string::npos) {
+                       std::string value = line.substr(0, line.rfind("\""));
+                       value = boost::regex_replace(value, multispaces, " ");
+                       value = boost::regex_replace(value, leadingspaces, "");
+                       data += value;
+                       break;
+                   }
+                   std::string value = boost::regex_replace(line, multispaces, " ");
+                   value = boost::regex_replace(value, leadingspaces, "");
+                   data += value + "\n";
+                   continue;
+                }
+                if (line.find("\"post_3dlut_sidecar_name\":") != std::string::npos) {
+                    boost::regex expr(R"("post_3dlut_sidecar_name"\s*:\s*"([^"]*)\")");
+                    boost::smatch what;
+                    if (boost::regex_search(line, what, expr)) {
+                        name = what[1];
+                    }
+                } else if (line.find("\"post_3dlut_sidecar_title\":") != std::string::npos) {
+                    boost::regex expr(R"("post_3dlut_sidecar_title"\s*:\s*"([^"]*)\")");
+                    boost::smatch what;
+                    if (boost::regex_search(line, what, expr)) {
+                        title = what[1];
+                    }
+                } else if (line.find("\"post_3dlut_sidecar_size\":") != std::string::npos) {
+                    boost::regex expr(R"("post_3dlut_sidecar_size"\s*:\s*(\d+))");
+                    boost::smatch what;
+                    if (boost::regex_search(line, what, expr)) {
+                        lutSize = std::stoi(what[1]);
+                    }
+                } else if (line.find("\"post_3dlut_sidecar_data\":") != std::string::npos) {
+                    datarun = true;
+                    size_t startPos = line.find("\"", line.find(":")) + 1;
+                    if (startPos != std::string::npos && startPos < line.size()) {
+                        std::string value = line.substr(startPos);
+                        if (!value.empty() && value.find("\"") != std::string::npos) {
+                            value = value.substr(0, value.find("\""));
+                        }
+                        value = boost::regex_replace(value, multispaces, " ");
+                        value = boost::regex_replace(value, leadingspaces, "");
+                        data += value + (value.empty() ? "" : "\n");
+                    }
+                }
+            }
+            lutdirectory = combine_path(
+                tool.outputdirectory, "/3DLut"
+            );
+            
+            if (!exists(lutdirectory)) {
+                
+                if (!create_path(lutdirectory)) {
+                    print_error("could not create 3dlut directory: ", lutdirectory);
+                    return EXIT_FAILURE;
+                }
+            }
+
+            lutfile = combine_path(
+                tool.outputdirectory + "/3DLut", name
+            );
+            
+            if (!exists(lutfile)) {
+                std::ofstream outputFile(lutfile);
+                if (outputFile)
+                {
+                    outputFile << "BMD_TITLE " << title << std::endl;
+                    outputFile << std::endl;
+                    outputFile << "LUT_3D_SIZE " << std::to_string(lutSize) << std::endl;
+                    outputFile << data;
+                    outputFile.close();
+                    
+                } else {
+                    print_error("could not open output lut file: ", lutfile);
+                    return EXIT_FAILURE;
+                }
+            }
+        } else {
+            print_warning("could not find sidecar file: ", sidecarfile);
+        }
+        
+
         print_info("applying 3dlut from file from sidecar");
         {
             ConstConfigRcPtr config = Config::CreateRaw();
