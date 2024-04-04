@@ -708,6 +708,18 @@ main( int argc, const char * argv[])
         ap.abort();
         return EXIT_SUCCESS;
     }
+    if (tool.inputfilename.length() == 0) {
+        print_error("missing parameter: ", "inputfilename");
+        ap.briefusage();
+        ap.abort();
+        return EXIT_FAILURE;
+    }
+    if (tool.outputdirectory.length() == 0) {
+        print_error("missing parameter: ", "outputdirectory");
+        ap.briefusage();
+        ap.abort();
+        return EXIT_FAILURE;
+    }
     if (argc <= 1) {
         ap.briefusage();
         print_error("For detailed help: brawtool --help");
@@ -899,6 +911,9 @@ main( int argc, const char * argv[])
             int yoffset = (height - resizeheight) / 2;
 
             ImageBufAlgo::paste(copybuf, xoffset, yoffset, 0, 0, resizedbuf);
+            for (const ParamValue& param : spec.extra_attribs) {
+               copybuf.specmod().attribute(param.name().c_str(), param.type(), param.data());
+            }
             imageBuf.copy(copybuf);
         }
     }
