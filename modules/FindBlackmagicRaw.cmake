@@ -7,35 +7,35 @@
 #   BlackmagicRaw_LIBRARIES     - The libraries to link against
 #   BlackmagicRaw_DISPATCH      - The path to BlackmagicRawAPIDispatch.cpp
 
-find_path( BlackmagicRaw_INCLUDE_DIRS 
+find_path (BlackmagicRaw_INCLUDE_DIRS 
            NAMES BlackmagicRawAPI.h
            PATH_SUFFIXES Include
 )
 
-find_file( BlackmagicRaw_SOURCES
+find_file (BlackmagicRaw_SOURCES
           NAMES BlackmagicRawAPIDispatch.cpp
           PATH_SUFFIXES Include
 )
 
-find_library( BlackmagicRaw_LIBRARIES 
+find_library (BlackmagicRaw_LIBRARIES 
           NAMES BlackmagicRawAPI
           PATH_SUFFIXES Libraries
 )
 
-if( BlackmagicRaw_LIBRARIES )
-    get_filename_component( BlackmagicRaw_LIBRARY_PATH "${BlackmagicRaw_LIBRARIES}" DIRECTORY CACHE )
+if (BlackmagicRaw_LIBRARIES)
+    get_filename_component( BlackmagicRaw_LIBRARY_PATH "${BlackmagicRaw_LIBRARIES}" DIRECTORY CACHE)
 endif()
 
-include( FindPackageHandleStandardArgs )
-find_package_handle_standard_args( 
+include (FindPackageHandleStandardArgs)
+find_package_handle_standard_args ( 
         BlackmagicRaw DEFAULT_MSG
         BlackmagicRaw_INCLUDE_DIRS BlackmagicRaw_LIBRARY_PATH BlackmagicRaw_SOURCES BlackmagicRaw_LIBRARIES 
  )
 
-if( BlackmagicRaw_FOUND )
-  message( STATUS "Found BlackmagicRaw: include at ${BlackmagicRaw_INCLUDE_DIRS}, library at ${BlackmagicRaw_LIBRARY_PATH}, sources ${BlackmagicRaw_SOURCES}, library at ${BlackmagicRaw_LIBRARIES}")
-else()
-  message( WARNING "Could not find BlackmagicRaw" )
-endif()
+if (BlackmagicRaw_FOUND)
+  message (STATUS "Found BlackmagicRaw: include at ${BlackmagicRaw_INCLUDE_DIRS}, library at ${BlackmagicRaw_LIBRARY_PATH}, sources ${BlackmagicRaw_SOURCES}, library at ${BlackmagicRaw_LIBRARIES}")
+else ()
+  message (FATAL_ERROR "Could not find BlackmagicRaw")
+endif ()
 
-mark_as_advanced( BlackmagicRaw_INCLUDE_DIRS BlackmagicRaw_SOURCES BlackmagicRaw_LIBRARIES )
+mark_as_advanced (BlackmagicRaw_INCLUDE_DIRS BlackmagicRaw_SOURCES BlackmagicRaw_LIBRARIES)

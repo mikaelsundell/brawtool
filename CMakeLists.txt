@@ -2,36 +2,36 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/mikaelsundell/brawtool
 
-cmake_minimum_required( VERSION 3.23 )
-set( project_name "brawtool" )
+cmake_minimum_required (VERSION 3.23)
+set (project_name "brawtool")
 
-project( "${project_name} project" )
+project ("${project_name} project")
 
 # cmake
-list( APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/modules" )
-list( APPEND CMAKE_PREFIX_PATH "/Applications/Blackmagic RAW/Blackmagic RAW SDK/Mac" )
+list (APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/modules")
+list (APPEND CMAKE_PREFIX_PATH "/Applications/Blackmagic RAW/Blackmagic RAW SDK/Mac")
 
 # package
-find_package( OpenImageIO CONFIG REQUIRED )
-find_package( OpenColorIO CONFIG REQUIRED )
-find_package( Boost CONFIG REQUIRED COMPONENTS filesystem )
-find_package( BlackmagicRaw REQUIRED )
+find_package (OpenImageIO CONFIG REQUIRED)
+find_package (OpenColorIO CONFIG REQUIRED)
+find_package (Boost CONFIG REQUIRED COMPONENTS filesystem)
+find_package (BlackmagicRaw REQUIRED)
 
 # rpaths
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # project
-add_executable( ${project_name} "brawtool.cpp" ${BlackmagicRaw_SOURCES} )
+add_executable (${project_name} "brawtool.cpp" ${BlackmagicRaw_SOURCES} )
 
 # definitions
-add_definitions(-DBlackmagicRaw_LIBRARY_PATH="${BlackmagicRaw_LIBRARY_PATH}")
+add_definitions (-DBlackmagicRaw_LIBRARY_PATH="${BlackmagicRaw_LIBRARY_PATH}")
 
-target_include_directories(${project_name}
+target_include_directories (${project_name}
     PRIVATE 
         ${BlackmagicRaw_INCLUDE_DIRS}
 )
 
-target_link_libraries(${project_name}
+target_link_libraries (${project_name}
     PRIVATE
         OpenImageIO::OpenImageIO
         OpenColorIO::OpenColorIO
@@ -40,9 +40,9 @@ target_link_libraries(${project_name}
         "-framework CoreFoundation"
 )
 
-set_property(TARGET ${project_name} PROPERTY CXX_STANDARD 14)
+set_property (TARGET ${project_name} PROPERTY CXX_STANDARD 14)
 
-add_custom_command(
+add_custom_command (
     TARGET ${project_name}
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -50,7 +50,7 @@ add_custom_command(
         $<TARGET_FILE_DIR:${project_name}>/fonts
 )
 
-add_custom_command(
+add_custom_command (
     TARGET ${project_name}
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -58,14 +58,14 @@ add_custom_command(
         $<TARGET_FILE_DIR:${project_name}>/resources
 )
 
-install(TARGETS ${project_name}
+install (TARGETS ${project_name}
     RUNTIME DESTINATION bin
 )
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/fonts
+install (DIRECTORY ${CMAKE_SOURCE_DIR}/fonts
     DESTINATION bin
 )
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/resources
+install (DIRECTORY ${CMAKE_SOURCE_DIR}/resources
     DESTINATION bin
 )
