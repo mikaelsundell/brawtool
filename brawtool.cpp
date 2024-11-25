@@ -738,7 +738,7 @@ main( int argc, const char * argv[])
         if (json.is_open()) {
             ptree pt;
             read_json(jsonfile, pt);
-            for (const std::pair<const ptree::key_type, ptree&>& item : pt) {
+            for (const std::pair<const ptree::key_type, ptree>& item : pt) {
                 std::string name = item.first;
                 const ptree data = item.second;
                 
