@@ -73,7 +73,7 @@ Dependencies
 | Boost       | [Boost project @ Github](https://github.com/boostorg/boost)
 | OpenImageIO | [OpenImageIO project @ Github](https://github.com/OpenImageIO/oiio)
 | OpenColorIO | [OpenColorIO project @ Github](https://github.com/AcademySoftwareFoundation/OpenColorIO)
-| BlackMagic RAW     | [BlackMagic website](https://www.blackmagicdesign.com/se/products/blackmagicraw)
+| Blackmagic RAW     | [Blackmagic RAW installer](https://www.blackmagicdesign.com/event/blackmagicrawinstaller)
 | 3rdparty    | [3rdparty project containing all dependencies @ Github](https://github.com/mikaelsundell/3rdparty)
 
 Project
