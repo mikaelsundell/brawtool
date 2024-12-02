@@ -6,7 +6,7 @@ Brawtool
 Introduction
 ------------
 
-brawtool is a set of utilities for processing braw encoded images
+brawtool is a set of utilities for processing braw encoded images.
 
 Building
 --------
